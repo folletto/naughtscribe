@@ -84,7 +84,7 @@ public enum AudioDecoder {
 
     /// Opens a file for reading. When AVAudioFile rejects the file, the asset's audio tracks decide the error:
     /// a media file without audio throws `.noAudioTrack`, and anything else throws `.cannotOpenFile`.
-    private static func openAudioFile(at url: URL) async throws -> AVAudioFile {
+    public static func openAudioFile(at url: URL) async throws -> AVAudioFile {
         do {
             return try AVAudioFile(forReading: url)
         } catch {
