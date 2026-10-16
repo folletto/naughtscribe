@@ -11,6 +11,10 @@ INSTALL_DIR  := /Applications
 # start its own sandbox-exec for manifest evaluation.
 SWIFT_FLAGS  ?=
 
+# Architectures for `app`. Both slices give a universal binary. Override on the
+# command line, e.g. `make ARCHS=` for a host-only build.
+ARCHS        := --arch arm64 --arch x86_64
+
 .DEFAULT_GOAL := default
 .PHONY: default app run install clean
 
@@ -18,8 +22,8 @@ default: app
 
 # Release build, then assemble and ad-hoc sign $(APP_BUNDLE).
 app:
-	swift build $(SWIFT_FLAGS) -c release
-	@bin_dir="$$(swift build $(SWIFT_FLAGS) -c release --show-bin-path)"; \
+	swift build $(SWIFT_FLAGS) $(ARCHS) -c release
+	@bin_dir="$$(swift build $(SWIFT_FLAGS) $(ARCHS) -c release --show-bin-path)"; \
 	echo "Binary: $$bin_dir/$(APP_NAME)"; \
 	rm -rf "$(APP_BUNDLE)"; \
 	mkdir -p "$(APP_BUNDLE)/Contents/MacOS" "$(APP_BUNDLE)/Contents/Resources"; \
