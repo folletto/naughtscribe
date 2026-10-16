@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import TranscriptionCore
 
 /// File extensions the transcription pipeline accepts. Other files are ignored when they are dropped or opened.
 enum AudioFileTypes {
@@ -23,13 +24,17 @@ final class AppModel {
         let locale: Locale
     }
 
-    private let service = TranscriptionService()
+    private let registry: EngineRegistry
     private var queue: [Job] = []
     private var isWorking = false
     private var activeJob: (id: UUID, task: Task<Void, Never>)?
 
-    init() {
-        store = TranscriptStore()
+    /// - Parameters:
+    ///   - store: Where transcripts are kept. Tests pass a store in a temporary directory.
+    ///   - registry: The engines a job can use. Tests pass fake engines.
+    init(store: TranscriptStore = TranscriptStore(), registry: EngineRegistry = .shared) {
+        self.store = store
+        self.registry = registry
     }
 
     /// Adds a transcript for each audio file at once, then transcribes the files one at a time, in the order given.
@@ -103,26 +108,53 @@ final class AppModel {
             }
         }
 
+        // The engine is chosen per job, so a change in Settings applies to the next job.
+        guard let engine = await registry.resolve(preferredID: AppSettings.preferredEngineID()) else {
+            store.update(job.transcriptID) { transcript in
+                transcript.status = .failed
+                transcript.errorMessage = "No transcription engine is available on this Mac."
+            }
+            return
+        }
+        store.update(job.transcriptID) { $0.engineID = engine.descriptor.id }
+
+        // Files chosen by the user in this sandboxed app are security-scoped; access must stay open while reading.
+        let startedScopedAccess = job.fileURL.startAccessingSecurityScopedResource()
+        defer {
+            if startedScopedAccess { job.fileURL.stopAccessingSecurityScopedResource() }
+        }
+
+        let request = TranscriptionRequest(
+            fileURL: job.fileURL,
+            selection: ModelSelection(modelID: nil, language: .specific(job.locale))
+        )
         var lastSave: ContinuousClock.Instant?
         do {
-            for try await update in service.transcribe(fileURL: job.fileURL, locale: job.locale) {
-                if let text = update.text {
-                    store.update(job.transcriptID) { transcript in
-                        transcript.status = .done
-                        transcript.progress = 1
-                        transcript.statusMessage = "Done"
-                        transcript.text = text
-                    }
-                } else {
+            for try await event in engine.transcribe(request) {
+                switch event {
+                case .phase(let phase):
+                    // Steps change rarely, so each change is saved right away.
+                    let message = Self.statusMessage(for: phase)
+                    store.update(job.transcriptID) { $0.statusMessage = message }
+                case .progress(let fraction):
                     // Each save rewrites the transcript file, so progress is saved at most twice a second.
                     let now = ContinuousClock.now
                     if let lastSave, now - lastSave < .milliseconds(500) {
                         continue
                     }
                     lastSave = now
+                    store.update(job.transcriptID) { $0.progress = fraction }
+                case .segment:
+                    // Segments are delivered again in `.finished`, so they are not stored one by one.
+                    break
+                case .finished(let result):
                     store.update(job.transcriptID) { transcript in
-                        transcript.progress = update.progress
-                        transcript.statusMessage = update.statusMessage
+                        transcript.status = .done
+                        transcript.progress = 1
+                        transcript.statusMessage = "Done"
+                        transcript.text = result.text
+                        transcript.segments = result.segments
+                        transcript.modelID = result.modelID
                     }
                 }
             }
@@ -132,6 +164,20 @@ final class AppModel {
                 transcript.status = .failed
                 transcript.errorMessage = message
             }
+        }
+    }
+
+    /// The status line shown for each step of a job. All user-facing job text is defined here.
+    static func statusMessage(for phase: TranscriptionPhase) -> String {
+        switch phase {
+        case .preparingAudio:
+            return "Preparing audio"
+        case .downloadingModel:
+            return "Downloading language model"
+        case .loadingModel:
+            return "Loading model"
+        case .transcribing:
+            return "Transcribing"
         }
     }
 }
