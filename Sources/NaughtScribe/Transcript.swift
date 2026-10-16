@@ -1,4 +1,5 @@
 import Foundation
+import TranscriptionCore
 
 enum TranscriptStatus: String, Codable {
     case inProgress
@@ -22,6 +23,12 @@ struct Transcript: Codable, Identifiable, Hashable, Sendable {
     var statusMessage: String
     var text: String
     var errorMessage: String?
+    /// The engine that produced the text, for example "apple.speechtranscriber". Nil for older transcripts.
+    var engineID: String?
+    /// The model the engine used. Nil for transcripts made before engines existed.
+    var modelID: String?
+    /// The timed segments of `text`. Nil for transcripts made before engines existed, which only have `text`.
+    var segments: [TranscriptSegment]?
 
     init(
         id: UUID = UUID(),
@@ -38,6 +45,9 @@ struct Transcript: Codable, Identifiable, Hashable, Sendable {
         self.statusMessage = "Preparing audio"
         self.text = ""
         self.errorMessage = nil
+        self.engineID = nil
+        self.modelID = nil
+        self.segments = nil
     }
 
     var title: String { sourceFileName }
