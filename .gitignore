@@ -31,6 +31,9 @@ playground.xcworkspace
 
 .build/
 
+# Makefile output: build/NaughtScribe.app
+build/
+
 # CocoaPods
 #
 # We recommend against adding the Pods directory to your .gitignore. However
