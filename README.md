@@ -1,6 +1,9 @@
 # NaughtScribe
 
-A native macOS app that transcribes audio files on your Mac, using Apple's on-device speech engine (`SpeechAnalyzer`). Requires macOS 26.
+A native macOS app that transcribes audio files on your Mac, using Apple's on-device speech engines. Requires macOS 26.
+
+- **Apple Speech** (`SpeechAnalyzer`) needs a Mac with Apple silicon. It is used first.
+- **Apple Speech (Legacy)** (`SFSpeechRecognizer`) is used automatically on Intel Macs. It runs on-device only and is less accurate. The app asks for Speech Recognition permission on the first transcription. Each language must have on-device Dictation installed (System Settings > Keyboard > Dictation).
 
 ## Usage
 
@@ -8,7 +11,7 @@ A native macOS app that transcribes audio files on your Mac, using Apple's on-de
 - Each file becomes a transcript in the sidebar, with the date and time it was added. The text appears when transcription finishes.
 - Search the sidebar to find transcripts by their text.
 - Right-click a transcript to delete it.
-- Choose the transcription language in Settings (⌘,). The default is the system language.
+- Choose the engine and the transcription language in Settings (⌘,). The defaults are Automatic and the system language.
 - If the app quits during a transcription, that transcript is marked as failed.
 
 Transcripts are stored as one JSON file each in `~/Library/Containers/com.naughtscribe.app/Data/Library/Application Support/NaughtScribe/Transcripts/`.

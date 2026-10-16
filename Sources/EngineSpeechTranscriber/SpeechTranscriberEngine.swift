@@ -51,13 +51,13 @@ public struct SpeechTranscriberEngine: TranscriptionEngine {
     }
 
     public func prepare(_ selection: ModelSelection) -> AsyncThrowingStream<Double, Error> {
-        Self.makeStream { continuation in
+        TranscriptionStream.make { continuation in
             try await Self.install(selection, continuation: continuation)
         }
     }
 
     public func transcribe(_ request: TranscriptionRequest) -> AsyncThrowingStream<TranscriptionEvent, Error> {
-        Self.makeStream { continuation in
+        TranscriptionStream.make { continuation in
             try await self.run(request, continuation: continuation)
         }
     }
@@ -75,7 +75,7 @@ public struct SpeechTranscriberEngine: TranscriptionEngine {
             throw TranscriptionError.unsupportedLanguage(Self.displayName(for: requested))
         }
 
-        let audioFile = try await Self.openAudioFile(at: request.fileURL)
+        let audioFile = try await AudioDecoder.openAudioFile(at: request.fileURL)
         let sampleRate = audioFile.processingFormat.sampleRate
         let totalSeconds = sampleRate > 0 ? Double(audioFile.length) / sampleRate : 0
 
@@ -232,41 +232,6 @@ public struct SpeechTranscriberEngine: TranscriptionEngine {
     }
 
     // MARK: - Helpers
-
-    /// Creates a stream whose events come from `work`, which runs in its own task. The stream finishes when `work`
-    /// returns, and fails with the error from `TranscriptionError.normalize(_:)`. Ending iteration, or cancelling
-    /// the consumer, cancels the work.
-    private static func makeStream<Element: Sendable>(
-        _ work: @escaping @Sendable (AsyncThrowingStream<Element, Error>.Continuation) async throws -> Void
-    ) -> AsyncThrowingStream<Element, Error> {
-        AsyncThrowingStream { continuation in
-            let task = Task {
-                do {
-                    try await work(continuation)
-                    continuation.finish()
-                } catch {
-                    let failure = Task.isCancelled ? TranscriptionError.cancelled : TranscriptionError.normalize(error)
-                    continuation.finish(throwing: failure)
-                }
-            }
-            continuation.onTermination = { @Sendable _ in task.cancel() }
-        }
-    }
-
-    /// Opens the file for reading. When AVAudioFile rejects the file, the asset decides the error:
-    /// a media file without audio throws `.noAudioTrack`, and anything else throws `.cannotOpenFile`.
-    private static func openAudioFile(at url: URL) async throws -> AVAudioFile {
-        do {
-            return try AVAudioFile(forReading: url)
-        } catch {
-            // AVAudioFile rejects both non-audio files and media files with no audio track. Asking the
-            // asset tells them apart, so the user gets the more specific message when it applies.
-            if let tracks = try? await AVURLAsset(url: url).loadTracks(withMediaType: .audio), tracks.isEmpty {
-                throw TranscriptionError.noAudioTrack
-            }
-            throw TranscriptionError.cannotOpenFile(url.lastPathComponent)
-        }
-    }
 
     /// The transcriber for downloads and analysis. It reports final results only, each with its audio time range.
     private static func makeTranscriber(locale: Locale) -> SpeechTranscriber {

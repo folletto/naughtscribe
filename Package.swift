@@ -16,14 +16,19 @@ let package = Package(
             dependencies: ["TranscriptionCore"],
             path: "Sources/EngineSpeechTranscriber"
         ),
+        .target(
+            name: "EngineSFSpeech",
+            dependencies: ["TranscriptionCore"],
+            path: "Sources/EngineSFSpeech"
+        ),
         .executableTarget(
             name: "NaughtScribe",
-            dependencies: ["TranscriptionCore", "EngineSpeechTranscriber"],
+            dependencies: ["TranscriptionCore", "EngineSpeechTranscriber", "EngineSFSpeech"],
             path: "Sources/NaughtScribe"
         ),
         .testTarget(
             name: "NaughtScribeTests",
-            dependencies: ["NaughtScribe", "TranscriptionCore"],
+            dependencies: ["NaughtScribe", "TranscriptionCore", "EngineSFSpeech"],
             path: "Tests/NaughtScribeTests"
         )
     ]

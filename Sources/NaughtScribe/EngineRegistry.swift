@@ -1,3 +1,4 @@
+import EngineSFSpeech
 import EngineSpeechTranscriber
 import TranscriptionCore
 
@@ -5,7 +6,7 @@ import TranscriptionCore
 struct EngineRegistry: Sendable {
     /// The engines in the app. This array is the only place in the app that lists engines:
     /// a new engine is added here, and nothing else needs to change.
-    static let shared = EngineRegistry(engines: [SpeechTranscriberEngine()])
+    static let shared = EngineRegistry(engines: [SpeechTranscriberEngine(), SFSpeechRecognizerEngine()])
 
     let engines: [any TranscriptionEngine]
 
