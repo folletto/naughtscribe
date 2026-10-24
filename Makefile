@@ -21,7 +21,7 @@ ARCHS        := --arch arm64 --arch x86_64
 default: app
 
 # Release build, then assemble and ad-hoc sign $(APP_BUNDLE).
-app:
+app: $(APP_ICON)
 	swift build $(SWIFT_FLAGS) $(ARCHS) -c release
 	@bin_dir="$$(swift build $(SWIFT_FLAGS) $(ARCHS) -c release --show-bin-path)"; \
 	echo "Binary: $$bin_dir/$(APP_NAME)"; \
@@ -29,7 +29,7 @@ app:
 	mkdir -p "$(APP_BUNDLE)/Contents/MacOS" "$(APP_BUNDLE)/Contents/Resources"; \
 	cp "$$bin_dir/$(APP_NAME)" "$(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)"; \
 	cp "$(INFO_PLIST)" "$(APP_BUNDLE)/Contents/Info.plist"; \
-	if [ -f "$(APP_ICON)" ]; then cp "$(APP_ICON)" "$(APP_BUNDLE)/Contents/Resources/"; fi; \
+	cp -X "$(APP_ICON)" "$(APP_BUNDLE)/Contents/Resources/AppIcon.icns"; \
 	codesign --force --deep --sign - --entitlements "$(ENTITLEMENTS)" "$(APP_BUNDLE)"
 
 run: app
