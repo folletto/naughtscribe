@@ -5,6 +5,11 @@ A native macOS app that transcribes audio files on your Mac, using Apple's on-de
 - **Apple Speech** (`SpeechAnalyzer`) needs a Mac with Apple silicon. It is used first.
 - **Apple Speech (Legacy)** (`SFSpeechRecognizer`) is used automatically on Intel Macs. It runs on-device only and is less accurate. The app asks for Speech Recognition permission on the first transcription. Each language must have on-device Dictation installed (System Settings > Keyboard > Dictation).
 
+
+<img width="2024" height="1424" alt="naughtscribe-20261024" src="https://github.com/user-attachments/assets/9d88be04-5dbd-4b80-842a-5d2cb5ecc012" />
+
+
+
 ## Usage
 
 - Drop an audio file on the NaughtScribe window, or on its icon in the Dock or in the Applications folder.
