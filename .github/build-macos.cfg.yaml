@@ -1,0 +1,6 @@
+# Settings for .github/workflows/build-macos.yaml (see the header comment there).
+
+build-info-plist: Resources/Info.plist
+build-command: make app
+build-output: build/NaughtScribe.app
+build-package: dmg
